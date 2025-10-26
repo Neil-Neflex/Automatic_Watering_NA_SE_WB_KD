@@ -1,11 +1,13 @@
+
 Introduction
+
 Cette semaine, les travaux ont porté sur la rédaction du cahier des charges technique et sur la vérification expérimentale des 
 capteurs destinés à être intégrés dans le système d’arrosage automatique. L’objectif principal de cette étape était de définir précisément 
 les spécifications des composants matériels et de valider leur fonctionnement individuel avant l’intégration finale dans l’architecture globale du projet.
 
 I. Cahier des charges / Spécifications des composants
-Une grande partie du travail a été dédiée à la rédaction précise des fiches techniques des composants majeurs du système : le capteur de température et d'humidité DHT11, 
-le pluviomètre Lexca001, et les vannes motorisées ACARPS IP65.
+Une grande partie du travail a été dédiée à la rédaction précise des fiches techniques des composants majeurs du système : le capteur de température et
+d'humidité DHT11, le pluviomètre Lexca001, et les vannes motorisées ACARPS IP65.
 Ainsi, pour garantir une compréhension optimale avant leur utilisation, nous avons parcouru la documentation 
 technique de chaque composant.Cette approche a contribué à renforcer le socle technique du projet et à garantir l'interopérabilité des divers modules
 
@@ -41,6 +43,7 @@ Ces chiffres pourraient changer.
 Ces données seront utilisées plus tard pour activer ou arrêter l'irrigation de façon intelligente.
 
 Conclusion
+
 Cette première phase de travail a permis d’établir une base solide pour la suite du projet d’arrosage automatique.
 La rédaction du cahier des charges et l’étude approfondie des composants ont permis d’acquérir une compréhension 
 précise du rôle et du fonctionnement de chaque élément du système. Les tests réalisés sur le capteur d’humidité 
