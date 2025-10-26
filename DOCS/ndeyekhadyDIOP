@@ -1,0 +1,48 @@
+Introduction
+Cette semaine, les travaux ont porté sur la rédaction du cahier des charges technique et sur la vérification expérimentale des 
+capteurs destinés à être intégrés dans le système d’arrosage automatique. L’objectif principal de cette étape était de définir précisément 
+les spécifications des composants matériels et de valider leur fonctionnement individuel avant l’intégration finale dans l’architecture globale du projet.
+
+I. Cahier des charges / Spécifications des composants
+Une grande partie du travail a été dédiée à la rédaction précise des fiches techniques des composants majeurs du système : le capteur de température et d'humidité DHT11, 
+le pluviomètre Lexca001, et les vannes motorisées ACARPS IP65.
+Ainsi, pour garantir une compréhension optimale avant leur utilisation, nous avons parcouru la documentation 
+technique de chaque composant.Cette approche a contribué à renforcer le socle technique du projet et à garantir l'interopérabilité des divers modules
+
+
+b) Capteur DHT11 
+
+Le capteur DHT11 permet de mesurer la température ambiante et l’humidité relative de l’air. Il fonctionne entre 3 V et 5,5 V, avec une plage 
+de mesure de 0 à 50 °C et de 20 à 90 % HR, et transmet ses données via une liaison série. Les valeurs mesurées seront exploitées pour adapter 
+automatiquement la fréquence et la durée d’arrosage en fonction des conditions climatiques.
+
+c) Pluviomètre Lexca001
+
+Le pluviomètre Lexca001 fonctionne selon le principe d’un auget basculant, chaque basculement correspondant à 0,2794 mm de pluie. 
+Le capteur fournit un signal numérique détectable sur un GPIO, permettant un comptage précis des précipitations. Ces données seront 
+utilisées pour suspendre ou reprendre l’arrosage en fonction de la quantité de pluie tombée.
+
+d) Électrovannes motorisées ACARPS IP65
+
+Les électrovannes ACARPS IP65 sont des vannes motorisées à trois fils et deux commandes, alimentées en 12 V ou 24 V DC pour une puissance de 6 W. 
+Elles assurent le contrôle de l’écoulement de l’eau sur chaque zone d’irrigation. Une fois positionnées (ouvertes ou fermées), elles ne consomment 
+plus de courant, garantissant ainsi une excellente efficacité énergétique. Ces caractéristiques rendent ces vannes parfaitement adaptées à un système 
+d’arrosage autonome alimenté sur batterie.
+
+
+II. Tests de fonctionnement individuel des capteurs
+
+Suite à la phase de documentation, nous avons entamé la phase pratique de tests unitaires, en commençant par le capteur d'humidité du sol.
+Le but était d'examiner la réaction du capteur analogique et d'ajuster l'éventail des valeurs pour transformer la mesure en taux d'humidité.
+Un programme basique a été conçu sur Arduino, en utilisant  une entrée analogique de l'ESP32.Le programme est conçu pour interpréter et montrer 
+la valeur brute sur le moniteur série, puis pour la transformer en pourcentage d'humidité en se basant sur deux références : approximativement 1150 
+lorsqu'elle est immergée dans l'eau (indiquant un sol à 100 % humide)et près de 2500 lorsqu'elle est exposée à l'air libre (indiquant un sol à 0 % humide).
+Ces chiffres pourraient changer.
+Ces données seront utilisées plus tard pour activer ou arrêter l'irrigation de façon intelligente.
+
+Conclusion
+Cette première phase de travail a permis d’établir une base solide pour la suite du projet d’arrosage automatique.
+La rédaction du cahier des charges et l’étude approfondie des composants ont permis d’acquérir une compréhension 
+précise du rôle et du fonctionnement de chaque élément du système. Les tests réalisés sur le capteur d’humidité 
+du sol ont validé les premières hypothèses de mesure et posé les fondations de la partie logicielle du projet.
+
