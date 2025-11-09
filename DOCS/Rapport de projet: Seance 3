@@ -1,0 +1,47 @@
+Rapport de projet : Programmateur d’arrosage 
+Séance 3
+
+Introduction
+Lors de cette séance,  je me suis chargée de l’identification et de l’affectation des GPIO du microcontrôleur ESP32 aux différents éléments du système : écran LED, électrovannes, capteurs et RTC. Cette étape est indispensable pour assurer la faisabilité du câblage et éviter les conflits entre interfaces matérielles (SPI, I²C, entrées analogiques, etc.).
+Ma contribution a porté sur l’étude des caractéristiques des broches de l’ESP32, la sélection de celles compatibles avec nos besoins, puis leur affectation définitive dans le projet.
+Répartition des broches de l’ESP32
+Écran (interface SPI)
+CS → D15
+
+Reset → D4
+
+DC → D5
+
+MOSI (SDI) → D23
+
+SCK → D18
+
+MISO (si nécessaire) → D19
+
+LED (rétroéclairage) → D13 (3,3 V)
+
+
+Pilotage des électrovannes
+Vanne 1 : Ouverture D16 / Fermeture D17
+
+Vanne 2 : Ouverture D25 / Fermeture D26
+
+Vanne 3 : Ouverture D27 / Fermeture D14
+
+Vanne 4 : Ouverture D32 / Fermeture D33
+
+
+ Capteur température / humidité
+Signal → D36 (entrée uniquement)
+
+
+Horloge RTC (I²C)
+SDA → D22
+
+SCL → D21
+
+J’ai également vérifié les broches à éviter (GPIO0,2,12,15 + GPIO6→11 liés à la mémoire flash + GPIO1/3 UART) afin de garantir un fonctionnement sans conflit.
+
+Conclusion
+Cette séance a permis de finaliser la planification du câblage électronique.
+Le travail réalisé facilitera l’intégration et les tests matériels de la prochaine séance, en assurant une organisation claire des connexions entre l’ESP32 et les différents modules du système d’arrosage.
