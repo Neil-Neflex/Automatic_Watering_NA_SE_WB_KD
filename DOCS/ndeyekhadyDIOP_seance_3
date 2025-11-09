@@ -4,7 +4,6 @@ Les travaux de cette semaine ont porté sur la mise en œuvre et le test du capt
 Cette étape s’inscrit dans la continuité du développement du système d’arrosage automatique, dont l’objectif est d’adapter la fréquence et la durée d’irrigation 
 en fonction des conditions environnementales.
 
-
 -- Installation des bibliothèques nécessaires --
 
 Avant de pouvoir utiliser le DHT11, il a été nécessaire d’installer les bibliothèques adaptées dans Arduino IDE.  
