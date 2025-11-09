@@ -1,0 +1,65 @@
+-- Introduction --
+
+Les travaux de cette semaine ont porté sur la mise en œuvre et le test du capteur DHT11, destiné à mesurer la température et l’humidité relative de l’air.  
+Cette étape s’inscrit dans la continuité du développement du système d’arrosage automatique, dont l’objectif est d’adapter la fréquence et la durée d’irrigation 
+en fonction des conditions environnementales.
+
+
+-- Installation des bibliothèques nécessaires --
+
+Avant de pouvoir utiliser le DHT11, il a été nécessaire d’installer les bibliothèques adaptées dans Arduino IDE.  
+Deux bibliothèques ont été ajoutées via le gestionnaire de bibliothèques :
+-> DHT sensor library by Adafruit: Fournit les fonctions principales de lecture de température et d’humidité (readTemperature() et readHumidity()).
+-> Adafruit Unified Sensor : Nécessaire pour la compatibilité des capteurs DHT avec la structure de capteurs unifiée d’Adafruit.  
+L’installation de ces bibliothèques a permis au programme de reconnaître le capteur DHT11 et d’assurer une communication correcte entre celui-ci et l’ESP32.
+
+
+-- Montage et câblage--
+
+Le montage a été réalisé sur breadboard en connectant les broches VCC,DATA et GND du DHT11 respectivement aux broches VCC ,GPIO 2 et GND de l'esp32.
+Le capteur communique via une liaison numérique à un fil.
+
+
+-- Code de test --
+
+Le programme suivant a été écrit pour tester le capteur et afficher les valeurs mesurées sur le moniteur série :
+
+#include <Arduino.h>
+#include <DHT.h>
+#define DHTPIN 2
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+void setup() {
+  Serial.begin(9600);
+  dht.begin();          
+  delay(1000);
+}
+void loop() {
+  float temperature = dht.readTemperature();  //lecture de la temperature 
+  float humidite= dht.readHumidity();     //lecture de l'humidité 
+  Serial.println("Temperature = " + String(temperature) + " °C"); //affichage de la temperature 
+  Serial.println("Humidite = " + String(humidite) + " %");   //affichage de l'humidité
+  delay(5000);
+}
+
+Ce code effectue une lecture toutes les 5 secondes et affiche les valeurs lues  sur le moniteur série.
+
+-- Résultats et observations --
+
+Les données recueillies ont démontré des résultats concordants pour l'humidité de l'air, tandis que les mesures 
+de température se sont avérées anormalement basses, 
+environ 2 à 3 °C alors que la température ambiante était plus élevée.
+Cette irrégularité pourrait signaler soit un souci de calibrage, soit une mauvaise interprétation des données par la bibliothèque.
+Il se peut également que le capteur ait un léger retard de mesure ou qu'un bruit indésirable affecte la lecture.
+Une analyse plus détaillée sera effectuée pour déterminer la cause précise et mettre en œuvre une solution corrective lors
+des futures phases d'essai, qu'elle soit logicielle ou matérielle.
+
+
+--   Conclusion--
+
+Ces résultats constituent une étape importante dans le développement du système, car les données mesurées seront utilisées pour 
+réguler intelligemment les cycles d’arrosage en fonction des conditions climatiques.
+Un réajustement des mesures de température sera effectué afin d’assurer une précision optimale du système.
+
+
