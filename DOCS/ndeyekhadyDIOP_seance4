@@ -1,0 +1,63 @@
+-- Introduction --
+
+Au cours de cette semaine, les travaux ont porté sur la mise en œuvre et la résolution des dysfonctionnements liés au capteur DHT22, utilisé pour mesurer 
+la température et l’humidité relative de l’air.
+L’objectif était de comprendre l’origine des valeurs de température incorrectes observées précédemment et d’améliorer la fiabilité des mesures afin 
+d’assurer une intégration fiable dans le système d’arrosage automatique.
+
+
+-- Analyse du problème du capteur DHT22 --
+
+Lors de la séance précédente, les mesures d’humidité étaient cohérentes, mais les valeurs de température étaient anormalement basses, parfois 
+inférieures de plusieurs degrés à celles de l’environnement réel.
+Pour diagnostiquer ce comportement, une analyse approfondie de la documentation du DHT22 a été réalisée.
+Il y est recommandé d’utiliser une résistance de pull-up d’environ 5 kΩ sur la broche DATA pour stabiliser la communication numérique entre le capteur et l’ESP32.
+N’ayant pas de 5 kΩ disponible lors du montage, une résistance de 4,7 kΩ a été utilisée en remplacement, ce qui reste compatible pour ce capteur et assure un 
+fonctionnement correct.
+
+
+ -- Branchement et validation du DHT22 --
+
+Le montage a été revu et corrigé selon les recommandations techniques :
+VCC connecté au 3,3 V de l’ESP32,
+DATA connecté à la broche GPIO 2, avec une résistance de 4,7 kΩ entre DATA et VCC,
+GND relié à la masse.
+Après correction du câblage, le code de test précédemment utilisé a été exécuté de nouveau.
+Les valeurs de température fournies par le DHT22 ont été comparées avec celles d’un thermomètre de référence, ce qui a permis de valider l’amélioration de la précision des mesures.
+
+
+-- Étude du fonctionnement du pluviomètre Lexca001 --
+
+Dans une seconde phase, un travail en collaboration avec Wissal a été mené pour préparer l’intégration du pluviomètre Lexca001.
+Un examen de la documentation a permis de clarifier son fonctionnement basé sur un godet basculant : chaque basculement génère une impulsion qui correspond à 0,2794 mm de pluie.
+
+La discussion a porté sur :
+le mécanisme de génération des impulsions,
+la gestion du contact sec pour la lecture sur un GPIO de l’ESP32,
+la distinction entre vrais basculements et rebonds mécaniques.
+
+Nous avons décidé d’utiliser :
+une interruption pour détecter chaque basculement en temps réel,
+un filtrage  anti-rebond consistant à ignorer les impulsions trop rapprochées (< 150 ms).
+Cette approche garantit un comptage fiable et évite les mesures erronées dues aux vibrations du godet.
+
+
+ -- Préparation de la prochaine séance --
+
+La séance s’est conclue sur la planification des étapes suivantes :
+implémentation du code complet de comptage des impulsions,
+test du pluviomètre sur breadboard,
+conversion des impulsions en mm de pluie réelle,
+validation de son comportement dans des conditions de l’utilisation finale.
+
+
+--Conclusion --
+
+Les travaux de cette semaine ont permis d’améliorer la précision du capteur DHT22 grâce à l’ajout d’une résistance de pull-up adaptée et à une
+validation expérimentale des données.
+Par ailleurs, l’analyse détaillée du fonctionnement du pluviomètre a permis d’établir une stratégie claire pour son intégration dans le système 
+d’arrosage automatique.
+La prochaine séance sera consacrée à l’implémentation du code de détection et de filtrage des basculements du capteur Lexca001.
+
+
+
