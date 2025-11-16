@@ -1,6 +1,6 @@
 -- Introduction --
 
-Les travaux de cette semaine ont porté sur la mise en œuvre et le test du capteur DHT11, destiné à mesurer la température et l’humidité relative de l’air.  
+Les travaux de cette semaine ont porté sur la mise en œuvre et le test du capteur DHT22, destiné à mesurer la température et l’humidité relative de l’air.  
 Cette étape s’inscrit dans la continuité du développement du système d’arrosage automatique, dont l’objectif est d’adapter la fréquence et la durée d’irrigation 
 en fonction des conditions environnementales.
 
@@ -26,7 +26,7 @@ Le programme suivant a été écrit pour tester le capteur et afficher les valeu
 #include <Arduino.h>
 #include <DHT.h>
 #define DHTPIN 2
-#define DHTTYPE DHT11
+#define DHTTYPE DHT22
 
 DHT dht(DHTPIN, DHTTYPE);
 void setup() {
