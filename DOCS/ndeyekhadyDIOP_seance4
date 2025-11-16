@@ -20,7 +20,7 @@ fonctionnement correct.
 
 Le montage a été revu et corrigé selon les recommandations techniques :
 VCC connecté au 3,3 V de l’ESP32,
-DATA connecté à la broche GPIO 2, avec une résistance de 4,7 kΩ entre DATA et VCC,
+DATA connecté à la broche GPIO 12, avec une résistance de 4,7 kΩ entre DATA et VCC,
 GND relié à la masse.
 Après correction du câblage, le code de test précédemment utilisé a été exécuté de nouveau.
 Les valeurs de température fournies par le DHT22 ont été comparées avec celles d’un thermomètre de référence, ce qui a permis de valider l’amélioration de la précision des mesures.
