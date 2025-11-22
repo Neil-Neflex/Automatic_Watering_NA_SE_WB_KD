@@ -1,16 +1,17 @@
 --Introduction 
 
 Lors de cette séance, je me suis concentrée sur l'etude de la gestion de la batterie et l'ULP coprocesseur, ce dernier joue un rôle essentiel dans notre architecture : 
-Il permet de maintenir un minimum de surveillance lorsque l’ESP32 est en Deep Sleep.
+Il permet de maintenir un minimum de surveillance lorsque l’ESP32 est en Deep Sleep, et d'effectuer des tâches simples.
 l’objectif alors est de garder l’ESP32 réveillé juste pour ce qui est critique (fermeture de vannes, détection seuil batterie) tout en économisant l’énergie.
 
 --Fonctionnement global 
 
 Le fonctionnement repose sur les actions suivantes: 
-1)Mode Deep Sleep activé pour maximiser l’autonomie de la batterie.
+1)Mode Deep Sleep activé pour maximiser l’autonomie de la batterie --> esp_deep_sleep_start():
 ULP actif en permanence, surveillant :la tension batterie,l’état des capteurs et les impulsions du pluviomètre.
 
-2)Réveil conditionnel du CPU uniquement si :la batterie est trop faible, un événement critique est détecté ,
+2)Réveil conditionnel du CPU --> esp_sleep_enable_ulp_wakeup()
+uniquement si :la batterie est trop faible, un événement critique est détecté ,
 le timer(horloge) RTC atteint l’intervalle programmé.
 -Au réveil le CPU s'occupe de:
 fermeture de la vanne si nécessaire, lecture température/humidité, traitement/stockage des données, puis retour rapide en Deep Sleep.
@@ -29,8 +30,10 @@ Afin d'éviter ces contraintes, nous avons décidé alors d'utiliser:
 -Une interruption ISR pour détecter chaque basculement du godet en temps réel 
 -Un filtrage anti-rebond: ignorer les impulsions trop proches (<150 ms)
 -->Ce filtrage n’est pas effectué par le CPU principal, mais transféré au coprocesseur ULP (qui reste actif même lorsque l’ESP32 est en Deep Sleep).
-Ainsi le rôle important de l'ULP, qui va surveiller les impulsions en permanence et mesurer l'intervalle entre chaque deux basculements, tout en effectuant le filtrage anti-rebond.
+Ainsi le rôle important de l'ULP, qui va surveiller les impulsions en permanence et mesurer l'intervalle entre chaque deux basculements, tout en effectuant le filtrage anti-rebond, 
+et puis stocker cette mesure de nombre de basculements dans la mémoire RTC pour pouvoir l’analyser. 
 
 --Conclusion 
+
 Tous les choix que nous avons fait durant cette séance vont nous aider à réduire drastiquement la consommation énergétique et d'économiser et optimiser la batterie. 
 Constituant ainsi une base solide pour la suite des travaux qui comporte la validation expérimentale, et l'intégration du code permettant la réalisation de l'ensemble de ces fonctions critiques tout en assurant l'exploitation de l'ULP.
