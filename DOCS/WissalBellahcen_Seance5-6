@@ -1,0 +1,197 @@
+--Introduction 
+
+L’objectif de ces deux seances est d’utiliser le coprocesseur ULP (Ultra Low Power) de l’ESP32 pour compter les impulsions d’un pluviomètre à bascule connecté sur GPIO34. 
+Le compteur doit fonctionner même lorsque l’ESP32 est en deep-sleep.
+Le groupe de l’année dernière avait déjà fourni :
+-un fichier ULP en assembleur
+-plusieurs bibliothèques personnalisées (dummy.h, ESP32_RTC_EEPROM.h, UlpDebug.h)
+-un code Arduino partiellement fonctionnel
+Mais ce code ne compilait plus avec les versions récentes des toolchains ESP32.
+Mon travail a été de reprendre leur projet, comprendre leurs fichiers, puis refaire un système propre et fonctionnel
+
+--Première séance : Compréhension et recherche des bibliothèques
+
+Pendant la première séance, j’ai étudié les fichiers utilisés par le groupe précédent,identifié les bibliothèques nécessaires,
+essayé de comprendre comment ils chargeaient le programme ULP dans la mémoire RTC et comparé leur code avec la documentation officielle d’Espressif.
+Cependant,j'ai eu de nombreuses erreurs dès la compilation :
+-->erreurs liées à dummy.h
+-->erreurs liées à ESP32_RTC_EEPROM.h
+-->erreurs liées à UlpDebug.h
+-->erreurs indiquant que le fichier .S était invalide
+-->erreurs montrant que l’IDE Arduino ne reconnaissait pas les instructions assembleur ULP
+Ce qui m'a amenée à chercher les bonnes versions des librairies, et essayer d’intégrer ulptool, une extension non officielle pour Arduino,
+puis tester différentes installations afin d'analyser les erreurs pour comprendre les incompatibilités.
+Mais malgré tout, je n’obtenais toujours pas un ULP fonctionnel :
+le compilateur ne reconnaissait pas les macros, les directives .bss, et les registres ULP.
+
+--Deuxième séance : Reprise complète et reconstruction d’un code propre
+
+Pour cette deuxième séance j’ai testé les exemples du dépôt suivant :
+https://github.com/d03n3rfr1tz3/ULP-Pulse/tree/main/examples/ULP_Rain
+
+Mais j’ai obtenu des erreurs de compilation du .S , des erreurs « unknown pseudo-op » , erreurs « bad register name », erreurs internes du compilateur.
+Ces erreurs sont dues au fait que :
+-->l’exemple GitHub utilise une ancienne version du toolchain Arduino ESP32,
+-->l’Arduino IDE actuel n’inclut plus le support ULP complet.
+Donc j’ai essayé de réécrire un code ULP minimaliste, propre, compilable avec l’IDE Arduino actuel qui comporte les fichiers suivants: 
+-ulp.S : fichier assembleur
+-ulp_main.h: Déclarations extern
+-ulptool.h: fichier fournit par la librairie ULPTool pour charger le code ULP dans la memoire RTC 
+-sketch.ino: Programme principal
+
+--ulp.S : 
+
+.global ulp_entry
+.global rain_count
+.global prev_state
+
+// Variables en mémoire RTC
+rain_count:
+    .long 0          // compteur d'impulsions
+prev_state:
+    .long 0          // état précédent du GPIO
+
+ulp_entry:
+    // Lire GPIO34 (bit 2 du registre RTC_GPIO_IN_REG pour GPIO34)
+    READ_RTC_REG RTC_GPIO_IN_REG, RTC_GPIO_IN_NEXT_S + 34, r0
+
+    // Charger l'état précédent
+    LD r1, prev_state, 0
+
+    // Détecter front descendant 
+    AND r2, r1, 1      // état précédent
+    AND r3, r0, 1      // état actuel
+    SUB r2, r2, r3
+    JZ skip_increment
+
+    // Incrémenter compteur
+    LD r4, rain_count, 0
+    ADD r4, r4, 1
+    ST r4, rain_count, 0
+
+skip_increment:
+    // Sauvegarder l'état actuel pour le prochain cycle
+    ST r0, prev_state, 0
+
+    HALT
+
+
+--ulp_main.h: 
+
+#include "Arduino.h"
+extern uint32_t rain_count;
+extern uint32_t prev_state;
+extern uint32_t ulp_entry;
+
+--ulptool.h:
+
+#include "Arduino.h"
+#include "sdkconfig.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
+typedef struct {
+  uint32_t magic;
+  uint16_t text_offset;
+  uint16_t text_size;
+  uint16_t data_size;
+  uint16_t bss_size;
+} ulp_binary_header_t;
+
+#define ULP_BINARY_MAGIC_ESP32 (0x00706c75)
+
+esp_err_t ulptool_load_binary(uint32_t load_addr, const uint8_t* program_binary, size_t program_size) {
+  size_t program_size_bytes = program_size * sizeof(uint32_t);
+  size_t load_addr_bytes = load_addr * sizeof(uint32_t);
+
+  if (program_size_bytes < sizeof(ulp_binary_header_t)) {
+    return ESP_ERR_INVALID_SIZE;
+  }
+
+  if (load_addr_bytes > CONFIG_ULP_COPROC_RESERVE_MEM) {
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  if (load_addr_bytes + program_size_bytes > CONFIG_ULP_COPROC_RESERVE_MEM) {
+    return ESP_ERR_INVALID_SIZE;
+  }
+
+  ulp_binary_header_t header;
+  memcpy(&header, program_binary, sizeof(header));
+
+  if (header.magic != ULP_BINARY_MAGIC_ESP32) {
+    return ESP_ERR_NOT_SUPPORTED;
+  }
+
+  size_t total_size = (size_t) header.text_offset + (size_t) header.text_size +
+                      (size_t) header.data_size;
+
+  if (total_size != program_size_bytes) {
+    return ESP_ERR_INVALID_SIZE;
+  }
+
+  uint8_t* base = (uint8_t*) RTC_SLOW_MEM;
+
+  memcpy(base + load_addr_bytes, program_binary + header.text_offset, header.text_size + header.data_size);
+  memset(base + load_addr_bytes + header.text_size + header.data_size, 0, header.bss_size);
+
+  return ESP_OK;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+--sketch.ino:
+
+#include <Arduino.h>
+#include "esp32/ulp.h"
+
+// Déclaration du binaire ULP
+extern const uint8_t ulp_bin_start[] asm("_binary_ulp_rain_bin_start");
+extern const uint8_t ulp_bin_end[]   asm("_binary_ulp_rain_bin_end");
+
+// Variables partagées
+extern "C" {
+  extern uint32_t rain_count;
+  extern uint32_t prev_state;
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(34, INPUT);
+
+  // Charger le binaire ULP
+  ulp_load_binary(0, ulp_bin_start, (ulp_bin_end - ulp_bin_start)/sizeof(uint32_t));
+
+  // Initialiser l'état précédent
+  prev_state = digitalRead(34);
+
+  // Démarrer l’ULP
+  ulp_run(0);
+}
+
+void loop() {
+  delay(1000);
+
+  uint32_t count;
+  memcpy(&count, &rain_count, sizeof(count));
+
+  Serial.print("Impulsions : ");
+  Serial.println(count);
+}
+
+--> Le code compile mieux, mais il reste encore certains problèmes liés à la toolchain ULP etles tests sur ESP32 sont en cours.
+Donc le fonctionnement final n’est pas encore validé.
+
+--Conclusion 
+Au cours des deux séances, le projet a progressé dans la compréhension du fonctionnement du coprocesseur ULP et de l’organisation des fichiers nécessaires.
+Les différentes parties du projet ont été préparées et intégrées, et le code est actuellement en phase de tests. 
+Les prochaines étapes consisteront à résoudre les éventuelles erreurs de compilation et à valider le comptage des impulsions du pluviomètre.
+
+
+
+
