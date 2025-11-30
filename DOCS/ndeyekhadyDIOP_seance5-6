@@ -1,0 +1,179 @@
+Rapport des seances 5 - 6
+
+
+----- Introduction --
+
+
+
+Les seances effectuées au cours de cette semaine ont été consacrées à l'implémentation des capteurs indispensables au fonctionnement du système d'irrigation automatique. 
+Deux aspects ont fait l'objet d'une étude approfondie :
+
+      le pluviomètre Lexca001, conçu pour quantifier la pluie grâce à un dispositif d'auget basculant,
+      le capteur d'humidité du sol, qui sert à déterminer la condition hydrique du sol.
+
+L’objectif de ces séances était de comprendre le fonctionnement de ces capteurs, d'en garantir la lecture correcte avec l'ESP32, de surmonter les défis liés au câblage et aux interférences 
+rencontrées, puis d'étalonner les valeurs obtenues afin de fournir des données utilisables dans l'étape suivante du projet.
+
+
+
+----    1. Étude et implémentation du pluviomètre Lexca001 ----
+
+----    1.1 Principe de fonctionnement ----
+
+
+
+Le pluviomètre Lexca001 repose sur un système à auget basculant. Lorsqu’un auget se remplit d’eau, il bascule et déclenche momentanément un contact électrique. 
+Chaque basculement représente une quantité de précipitation donnée :
+
+                                                Un basculement= 0,2794 mm de pluie
+
+En comptant le nombre de basculements, il devient possible de calculer la pluviométrie totale enregistrée sur une période donnée.
+
+
+
+
+
+---- 1.2 Solution retenue et câblage final ----
+
+Le pluviomètre a finalement été relié à la broche GPIO34. Cette broche n'a pas de résistance de tirage interne, cependant elle offre une détection fiable si le câblage est effectué correctement. 
+Pour assurer la stabilité du signal, une résistance pull-up externe a été intégrée.
+
+Le fabricant recommande une résistance de 10 kΩ en tant que résistance de tirage. En raison de l'absence de cette valeur, une résistance existante de 8,2 kΩ a été employée. 
+Celle-ci  est approprié et assure un fonctionnement normal.
+
+
+Branchement
+ Pluviomètre – sortie 1     => GPIO34                
+ Pluviomètre – sortie 2     => GND                   
+ Résistance 8,2 kΩ          => Entre GPIO34 et 3,3 V 
+
+
+
+
+ ---- 1.4 Code final testé et validé  ----
+
+#include <Arduino.h>
+#define PLUVIO_PIN 34      
+#define ANTIREBOND 200  
+#define MM_PAR_BASCULEMENT 0.2794  
+unsigned long COMPTEUR = 0;
+unsigned long TEMPS_DIERNIER_BASCULEMENT = 0;
+
+void IRAM_ATTR BasculementDetecte() {
+  unsigned long maintenant = millis();
+  if (maintenant - TEMPS_DIERNIER_BASCULEMENT > ANTIREBOND) {
+    COMPTEUR++;
+    TEMPS_DIERNIER_BASCULEMENT = maintenant;
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PLUVIO_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PLUVIO_PIN), BasculementDetecte, FALLING);
+  Serial.println("=== Test du pluviomètre ===");
+}
+
+void loop() {
+  static unsigned long dernierAffichage = 0;
+
+  if (millis() - dernierAffichage > 2000) {
+    dernierAffichage = millis();
+    float Pluie_mm = COMPTEUR * MM_PAR_BASCULEMENT;
+    Serial.print("Basculements:");
+    Serial.println(COMPTEUR);
+    Serial.print("Pluviométrie:");
+    Serial.print(Pluie_mm);
+    Serial.println("mm");
+  }
+}
+
+
+
+
+
+
+
+---- Intégration du pluviomètre dans le coprocesseur ULP ----
+
+L'ESP32 renferme un coprocesseur ultra basse consommation nommé ULP (Ultra Low Power), apte à réaliser de petites opérations sans solliciter le processeur central.
+L'utilisation de cette fonctionnalité permettrait au dispositif de continuer à surveiller les changements du pluviomètre,  tout en restant en mode deep sleep.
+
+
+L’intégration du pluviomètre dans l’ULP se ferait selon les étapes suivantes :
+1.  Configuration de la broche GPIO34 comme entrée RTC pour qu'elle soit accessible par le coprocesseur.
+2. Établissement d'un programme ULP chargé de vérifier régulièrement l'état du contact du pluviomètre.
+3. Identification des transitions électriques liées aux changements d'état et donc des basculements .
+4. L'anti-rebond est géré directement dans l'ULP à travers un intervalle de temps minimum entre deux modifications d'état.
+5.Incrementation d'un compteur en mémoire RTC, qui est accessible lors de la sortie du sommeil de l'ESP32.
+6. Le processeur principal est réactivé soit de manière périodique, soit lorsqu'un certain seuil de pluie est atteint.
+
+Avec cette configuration, le dispositif continuerait à évaluer les précipitations tout en limitant l'utilisation d'énergie, une caractéristique cruciale pour un appareil conçu pour fonctionner de façon indépendante sur des durées prolongées.
+
+Ma collègue Wissal Bellahcen etudie actuellement cette mise en œuvre.
+
+---- 2. Mise en œuvre du capteur d’humidité du sol----
+
+---- 2.1 Objectif ---
+
+
+Le capteur d'humidité du sol employé se base sur la mesure d'une tension analogique liée à la conductivité du sol. 
+Plus l'humidité du sol est élevée, plus la valeur analogique détectée diminue. Ainsi, le but est de transformer cette 
+valeur brute en pourcentage utile pour le système d'irrigation.
+
+
+---- 2.2 Calibration ----
+
+Deux mesures de référence ont été effectuées :
+Capteur dans l’air   => 2500   
+Capteur dans l’eau => 1100          
+Toute lecture intermédiaire est convertie en pourcentage d’humidité.
+
+
+
+
+---- 2.3 Code final testé et validé  ----
+
+
+#include <Arduino.h>
+#define HUMIDITY_PIN 34
+const int AirValue = 2500;    
+const int WaterValue = 1100;  
+int Humidite_sol = 0;
+int Humidite_sol_pourcentage = 0;
+void setup() {
+  Serial.begin(115200);
+}
+
+void loop() {
+  Humidite_sol = analogRead(HUMIDITY_PIN);
+  Humidite_sol_pourcentage = map(Humidite_sol, AirValue, WaterValue, 0, 100);
+  Humidite_sol_pourcentage = constrain(Humidite_sol_pourcentage, 0, 100);
+  Serial.print("Humidité du sol:");
+  Serial.print(Humidite_sol_pourcentage);
+  Serial.println(" %");
+
+  if (Humidite_sol_pourcentage >= 80) Serial.println("Sol très humide");
+  else if (Humidite_sol_pourcentage >= 40) Serial.println("Sol humide");
+  else if (Humidite_sol_pourcentage >= 20) Serial.println("Sol sec ");
+  else Serial.println("Sol très sec !");
+  delay(2000);
+}
+
+Ce programme permet d’obtenir une mesure directement exploitable du taux d’humidité du sol et constitue la base de la décision automatique d’arrosage.
+
+
+
+----    Conclusion  ----
+
+Les séances réalisées ont permis une compréhension approfondie des deux capteurs essentiels du système d’arrosage automatique.
+Le pluviomètre a pu être stabilisé et validé suite à une correction du câblage incluant une résistance de tirage externe.
+La validation de la conversion des basculements en millimètres de pluie a été effectuée.
+
+En même temps, l'étalonnage du capteur d'humidité du sol a été effectué, ce qui a mené à une mesure précise en termes de pourcentage d'humidité.
+Toutes ces tâches établissent les fondements pour le fonctionnement autonome du système.
+
+Les étapes à venir impliqueront la combinaison des deux détecteurs en un seul programme, l'établissement des seuils pour déclencher l'arrosage et
+l'incorporation de ces données dans la gestion de l'énergie et l'affichage du système.
+
+
