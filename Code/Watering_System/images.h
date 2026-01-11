@@ -1,4 +1,15 @@
 // images.h
+/*#########################################
+* @Project :   Watering System 
+* @School :    Poytech Nice Sophia
+* @Training :  ELSE 4 FISA 
+* @Authors :   Neil Amrane
+*             Khady Ndyée Diop
+*             Wissal Bellahcen
+*             Salma Elfiache
+*##########################################
+*/
+
 #pragma once
 #include <Arduino.h>
 // array size is 671
