@@ -1,10 +1,23 @@
+//SensorCase.h
+/*#########################################
+* @Project :   Watering System 
+* @School :    Poytech Nice Sophia
+* @Training :  ELSE 4 FISA 
+* @Authors :   Neil Amrane
+*             Khady Ndyée Diop
+*             Wissal Bellahcen
+*             Salma Elfiache
+*##########################################
+*/
+
 #pragma once
 #include <Arduino.h>
 #include <TFT_eSPI.h>
-#include <PNGdec.h>
-#include "Case.h"
 
-// Déclaration de la fonction globale définie dans le .ino
+#include "Case.h"
+#include "Interface.h"
+
+// Déclaration de la fonction globale définie dans interface
 extern void drawPngFlash(const uint8_t *data, uint32_t len, int16_t x, int16_t y);
 
 class SensorCase : public Case{
@@ -72,3 +85,25 @@ class SensorCase : public Case{
         }  
       }
 };
+
+
+
+
+
+/*
+*   _______    ______    ___       ___  ___  ___________  _______   ______    __    __      
+*  |   __ "\  /    " \  |"  |     |"  \/"  |("     _   ")/"     "| /" _  "\  /" |  | "\     
+*  (. |__) :)// ____  \ ||  |      \   \  /  )__/  \\__/(: ______)(: ( \___)(:  (__)  :)    
+*  |:  ____//  /    ) :)|:  |       \\  \/      \\_ /    \/    |   \/ \      \/      \/     
+*  (|  /   (: (____/ //  \  |___    /   /       |.  |    // ___)_  //  \ _   //  __  \\     
+* /|__/ \   \        /  ( \_|:  \  /   /        \:  |   (:      "|(:   _) \ (:  (  )  :)    
+*(_______)   \"_____/    \_______)|___/          \__|    \_______) \_______) \__|  |__/     
+*                                                                                           
+*      _____  ___       __   ___      __   __  ___       ________                                
+*     (\"   \|"  \     |/"| /  ")    |"  |/  \|  "|     /"       )                               
+*     |.\\   \    |    (: |/   /     |'  /    \:  |    (:   \___/                                
+*     |: \.   \\  |    |    __/      |: /'        |     \___  \                                  
+*     |.  \    \. |    (// _  \       \//  /\'    |      __/  \\                                 
+*     |    \    \ |    |: | \  \      /   /  \\   |     /" \   :)                                
+*      \___|\____\)    (__|  \__)    |___/    \___|    (_______/                                                                                                                           
+*/

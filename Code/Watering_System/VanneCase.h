@@ -1,3 +1,15 @@
+//VanneCase.h
+/*#########################################
+* @Project :   Watering System 
+* @School :    Poytech Nice Sophia
+* @Training :  ELSE 4 FISA 
+* @Authors :   Neil Amrane
+*             Khady Ndyée Diop
+*             Wissal Bellahcen
+*             Salma Elfiache
+*##########################################
+*/
+
 #pragma once
 #include <Arduino.h>
 #include <TFT_eSPI.h>
@@ -45,7 +57,7 @@ class VanneCase : public Case {
       tft.setFreeFont(&FreeSans9pt7b); 
       tft.setTextSize(2);
       tft.setTextColor(TFT_BLACK, bgColor);
-      // si tu veux une FreeFont : tft.setFreeFont(&FreeSansOblique12pt7b);
+      // tft.setFreeFont(&FreeSansOblique12pt7b);
 
       int titleX = x + 10;         // ajustable
       int titleY = y + 40;         // ajustable
@@ -84,7 +96,7 @@ class VanneCase : public Case {
     void fermeture(){
       if (this->enable){
         digitalWrite(this->GPIO_Fermeture, 1);
-        delay(5000);
+        delay(5000); // !!!! Modifier mettre MILIS()
         digitalWrite(this->GPIO_Fermeture, 0);
         this->state = 0; //mise à jour de l'indicateur d'état
         this->updateColor(); //mise à jour de l'affichage 
@@ -95,8 +107,8 @@ class VanneCase : public Case {
       if (this->enable){ //Vérification de l'activation de la vanne
       //envoi d'une impultion de 5s sur le port d'ouverture de la vanne
         digitalWrite(this->GPIO_Ouverture, 1);
-        delay(5000);
-        digitalWrite(this->GPIO_Ouverture, 0);
+        delay(5000);// !!!! Modifier mettre MILIS()
+          digitalWrite(this->GPIO_Ouverture, 0);
         this->state = 1; //mise à jour de l'indicateur d'état
         this->updateColor(); //mise à jour de l'affichage 
       }
@@ -130,3 +142,24 @@ class VanneCase : public Case {
 
     bool getState(){return this->state;}
 };
+
+
+
+
+/*
+*   _______    ______    ___       ___  ___  ___________  _______   ______    __    __      
+*  |   __ "\  /    " \  |"  |     |"  \/"  |("     _   ")/"     "| /" _  "\  /" |  | "\     
+*  (. |__) :)// ____  \ ||  |      \   \  /  )__/  \\__/(: ______)(: ( \___)(:  (__)  :)    
+*  |:  ____//  /    ) :)|:  |       \\  \/      \\_ /    \/    |   \/ \      \/      \/     
+*  (|  /   (: (____/ //  \  |___    /   /       |.  |    // ___)_  //  \ _   //  __  \\     
+* /|__/ \   \        /  ( \_|:  \  /   /        \:  |   (:      "|(:   _) \ (:  (  )  :)    
+*(_______)   \"_____/    \_______)|___/          \__|    \_______) \_______) \__|  |__/     
+*                                                                                           
+*      _____  ___       __   ___      __   __  ___       ________                                
+*     (\"   \|"  \     |/"| /  ")    |"  |/  \|  "|     /"       )                               
+*     |.\\   \    |    (: |/   /     |'  /    \:  |    (:   \___/                                
+*     |: \.   \\  |    |    __/      |: /'        |     \___  \                                  
+*     |.  \    \. |    (// _  \       \//  /\'    |      __/  \\                                 
+*     |    \    \ |    |: | \  \      /   /  \\   |     /" \   :)                                
+*      \___|\____\)    (__|  \__)    |___/    \___|    (_______/                                                                                                                           
+*/

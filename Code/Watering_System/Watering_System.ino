@@ -1,15 +1,28 @@
+//main file
+/*#########################################
+* @Project :   Watering System 
+* @School :    Poytech Nice Sophia
+* @Training :  ELSE 4 FISA 
+* @Authors :   Neil Amrane
+*             Khady Ndyée Diop
+*             Wissal Bellahcen
+*             Salma Elfiache
+*##########################################
+*/
 
 #include <SPI.h>
 #include <TFT_eSPI.h>
-#include <Wire.h>
-#include <RTClib.h>
-#include <PNGdec.h> // PNG Décoder - permet la décompression des fichier PNG et l'extraction RGBA
+#include <Arduino.h>
 
-#include "images.h" //images a afficher
+
+
+#include "images.h"           //images a afficher
 #include "Case.h"
-#include "SensorCase.h"
-#include "VanneCase.h"
-#include "SensorManagment.h"
+#include "SensorCase.h"       //classe objet case capteur
+#include "VanneCase.h"        //classe objet case électrovanne
+#include "SensorManagment.h"  //gestion des capteurs
+#include "Interface.h"        //gestion de l'interface
+#include "ModuleHorloge.h"    //gestion de l'horloge
 
 #define SCREEN_LED 13
 TFT_eSPI tft = TFT_eSPI();
@@ -17,6 +30,7 @@ RTC_DS3231 rtc;
 PNG png;
 
 int16_t pngX, pngY; // Position courante d’affichage du PNG (utilisée par PngDraw)
+EtatEcran ETE;      //Etat courant de l'écran (Principal, Paramétrage vanne ou parametrage système)
 
 #define DELAY_ONESEC 1000
 
@@ -57,7 +71,7 @@ SensorCase HUMIDITE(1, 0, TFT_YELLOW, 80, 40, 80, 100, humidite, sizeof(humidite
 SensorCase PLUVIOMET(1, 0, TFT_WHITE, 160, 40, 80, 100, pluie, sizeof(pluie), 165, 45, "mm");
 SensorCase HUMIDITE_SOL(1, 0, TFT_WHITE, 240, 40, 80, 100, terre, sizeof(terre), 245, 45, " %");
 
-//Liste de gestion de l'affichage  (pointeur vers case, qui est une classe abstraite)
+//Liste de gestion des objets  (pointeur vers case, qui est une classe abstraite)
 Case* listeData[8] = {&TEMPERATURE, &HUMIDITE, &PLUVIOMET, &HUMIDITE_SOL, &V1, &V2, &V3, &V4};
 
 
@@ -65,9 +79,9 @@ Case* listeData[8] = {&TEMPERATURE, &HUMIDITE, &PLUVIOMET, &HUMIDITE_SOL, &V1, &
 
 void setup() {
   Serial.begin(9600);
-  // Initialisation I2C
-  Wire.begin(22, 21);   // broches ESP32 SDA=22, SCL=21
-  Serial.println("Initialisation RTC...\n");
+  
+
+  ETE = Principal;  //initialement on est sur l'écran principal
   //---------- Initialisation de la clock -----------------
   CLK_INIT();
   //------------Initialisation de l'écran----------------
@@ -92,18 +106,7 @@ void loop() {
   //Routine(); -> Ne plus appeler, ne marche plus car update mis à jour correctement 
 }
 //############### PROCEDURES & FONCTIONS #####################
-//Setup - Procédure d'initialisation de l'horloge
-void CLK_INIT(){
-  
-  while(!rtc.begin()) {
-    Serial.println("RTC non détecté !");
-  }
-  // Si l'RTC a perdu son horloge → on met l'heure du compilateur
-  if (rtc.lostPower()) {
-    Serial.println("RTC a perdu l'heure, initialisation...");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
-}
+
 
 //Setup - Procédure d'initialisation de l'écran
 void SCREEN_INIT(){
@@ -184,15 +187,7 @@ void Update(){
   if (currentMillis - previousMillis >= DELAY_ONESEC){
     //mise à jour de previousMillis
     previousMillis = currentMillis;
-    //parcours de toute les parties de l'affichage (toutes les cases)
-    for (int i = 0; i<8; i++){
-      //si un flag est à 1 -> on redessine la case
-      if (listeData[i]->getFlag()){
-        listeData[i]->draw(tft);
-      }
-    }
-    //On actualise l'heure
-    AfficherHeure();
+    GestionnaireEcran(ETE);
   }
 }
 //A supprimer plus tard
@@ -225,63 +220,30 @@ void Routine(){
 }
 
 //############### PROCEDURES & FONCTIONS AUXILIAIRES #####################
-//Rôle : Affiche l'heure et la date dans la partie supérieur de l'affichage
-void AfficherHeure(){
-  //MAJ param affichage (taille texte + couleurs)
-  tft.setTextSize(1);
-  tft.setTextColor(TFT_BLACK, TFT_LIGHTGREY);
 
-  DateTime now = rtc.now(); //Récupération de l'heure
-  char TimeBuffer[64];    //Buffer pour récuperer la date à afficher
-  sprintf(TimeBuffer,"%02d/%02d/%04d %02d:%02d:%02d", 
-  now.day(), now.month(), now.year(), now.hour(), now.minute(), now.second());
-  //on affiche temporairement la date dans la console série
-  Serial.printf(TimeBuffer);
-  tft.drawString(TimeBuffer, 5, 10, 2); // affichage Heure écran
 
-}
 
-//Rôle : fonction CallBack appelée par drawPng, permettant la gestion des image png avec composant Alpha (Transparence)
-int pngDraw(PNGDRAW *pDraw) {
-    static uint16_t lineBuf[320]; // ligne en RGB565
-    static uint8_t mask[40];      // masque alpha (1 bit par pixel)
 
-    // 1) Récupération de la ligne en RGB565
-    png.getLineAsRGB565(pDraw, lineBuf, PNG_RGB565_BIG_ENDIAN, 0xFFFFFFFF);
 
-    // 2) Récupération du masque alpha (détermine quels pixels sont visibles)
-    bool hasOpaque = png.getAlphaMask(pDraw, mask, 255);
 
-    if (!hasOpaque) {
-        return 1; // Ligne totalement transparente → ne rien afficher
-    }
 
-    // 3) Écriture pixel par pixel selon le masque
-    for (int x = 0; x < pDraw->iWidth; x++) {
-        int byteIndex = x >> 3;       // 8 pixels par octet
-        int bitIndex  = 7 - (x & 7);  // MSB first
 
-        if (mask[byteIndex] & (1 << bitIndex)) {
-            // pixel opaque → on dessine
-            tft.drawPixel(pngX + x, pngY + pDraw->y, lineBuf[x]);
-        }
-    }
 
-    return 1;
-}
-
-//Rôle : fonction utilitaire pour dessiner les image png
-void drawPngFlash(const uint8_t *data, uint32_t len, int16_t x, int16_t y) {
-    pngX = x;
-    pngY = y;
-
-    int rc = png.openFLASH((uint8_t*)data, len, pngDraw);
-    if (rc == PNG_SUCCESS) {
-        png.decode(NULL, 0);
-        png.close();
-    } else {
-        Serial.print("Erreur PNG rc=");
-        Serial.println(rc);
-    }
-}
+/*
+*   _______    ______    ___       ___  ___  ___________  _______   ______    __    __      
+*  |   __ "\  /    " \  |"  |     |"  \/"  |("     _   ")/"     "| /" _  "\  /" |  | "\     
+*  (. |__) :)// ____  \ ||  |      \   \  /  )__/  \\__/(: ______)(: ( \___)(:  (__)  :)    
+*  |:  ____//  /    ) :)|:  |       \\  \/      \\_ /    \/    |   \/ \      \/      \/     
+*  (|  /   (: (____/ //  \  |___    /   /       |.  |    // ___)_  //  \ _   //  __  \\     
+* /|__/ \   \        /  ( \_|:  \  /   /        \:  |   (:      "|(:   _) \ (:  (  )  :)    
+*(_______)   \"_____/    \_______)|___/          \__|    \_______) \_______) \__|  |__/     
+*                                                                                           
+*      _____  ___       __   ___      __   __  ___       ________                                
+*     (\"   \|"  \     |/"| /  ")    |"  |/  \|  "|     /"       )                               
+*     |.\\   \    |    (: |/   /     |'  /    \:  |    (:   \___/                                
+*     |: \.   \\  |    |    __/      |: /'        |     \___  \                                  
+*     |.  \    \. |    (// _  \       \//  /\'    |      __/  \\                                 
+*     |    \    \ |    |: | \  \      /   /  \\   |     /" \   :)                                
+*      \___|\____\)    (__|  \__)    |___/    \___|    (_______/                                                                                                                           
+*/
 
