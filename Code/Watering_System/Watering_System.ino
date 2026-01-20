@@ -71,7 +71,7 @@ SensorCase HUMIDITE(1, 0, TFT_YELLOW, 80, 40, 80, 100, humidite, sizeof(humidite
 SensorCase PLUVIOMET(1, 0, TFT_WHITE, 160, 40, 80, 100, pluie, sizeof(pluie), 165, 45, "mm");
 SensorCase HUMIDITE_SOL(1, 0, TFT_WHITE, 240, 40, 80, 100, terre, sizeof(terre), 245, 45, " %");
 
-//Liste de gestion de l'affichage  (pointeur vers case, qui est une classe abstraite)
+//Liste de gestion des objets  (pointeur vers case, qui est une classe abstraite)
 Case* listeData[8] = {&TEMPERATURE, &HUMIDITE, &PLUVIOMET, &HUMIDITE_SOL, &V1, &V2, &V3, &V4};
 
 

@@ -3,9 +3,9 @@
 * @School :    Poytech Nice Sophia
 * @Training :  ELSE 4 FISA 
 * @Authors :   Neil Amrane
-*             Khady Ndyée Diop
-*             Wissal Bellahcen
-*             Salma Elfiache
+*              Khady Ndyée Diop
+*              Wissal Bellahcen
+*              Salma Elfiache
 *##########################################
 */
 #include "Interface.h"

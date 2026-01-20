@@ -55,7 +55,7 @@ void setHumidite(int x){
 void setPluvio(int x){
   int tmp = 3; //nouvelle valeur
   auto* sensor = asSensor(2);
-
+  //...
   if (sensor->getValue() != x){
     sensor->setValue(x);
     PluvioBgColor();
@@ -65,7 +65,7 @@ void setPluvio(int x){
 void setHumiditeGround(int x){
   int tmp =0; //nouvelle valeur
   auto* sensor = asSensor(3);
-
+  
   if (sensor->getValue() != x){
     sensor->setValue(x);
     HumiditeGroundBgColor();
