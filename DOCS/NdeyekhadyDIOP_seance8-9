@@ -1,0 +1,75 @@
+Cette phase a été consacrée à la traduction du cahier des charges fonctionnel en un schéma électronique (Schematic) viable sous le logiciel Eagle.
+La conception repose sur une architecture mixte, devant gérer la cohabitation critique entre deux domaines de tension :
+Le domaine logique (3.3V) : Basse tension / Faible courant pour le microcontrôleur ESP32 et les capteurs.
+Le domaine de puissance (12V) : Haute tension / Fort courant pour le pilotage des actionneurs (électrovannes).
+L'enjeu majeur a été de garantir l'intégrité des signaux logiques tout en fournissant la puissance nécessaire aux vannes, le tout alimenté par une source unique (Batterie).
+
+
+
+------------ Architecture de l'Alimentation : Conversion DC-DC ---------------------
+
+Le système étant alimenté par une batterie délivrant une tension nominale de ~3.7V (LiPo), une conversion d'énergie est indispensable pour piloter les vannes 12V.
+
+--- Conception d'un Convertisseur Boost "Discret" (MT3608) ---
+
+Au lieu d'utiliser un module pré-assemblé, nous avons conçu notre propre étage d'élévation de tension (Step-Up) directement sur le PCB pour optimiser l'espace et les performances.
+Le circuit s'articule autour du contrôleur MT3608 (SOT23-6) fonctionnant à une fréquence de commutation élevée (1.2MHz), ce qui permet de réduire la taille des composants passifs.
+Dimensionnement des composants clés :
+Inductance (L1 - 22µH) : Dimensionnée pour stocker l'énergie magnétique sans atteindre la saturation magnétique lors des pics de courant d'appel des vannes.
+Diode de Roue Libre (D1 - SS34) : Choix d'une diode Schottky pour sa faible chute de tension directe  et sa commutation rapide, minimisant les pertes thermiques.
+Boucle de Rétroaction (Feedback) : La tension de sortie est asservie à 12V via un pont diviseur résistif précis connecté à la broche FB. Cela garantit que les vannes 
+reçoivent une tension constante, quel que soit le niveau de charge de la batterie.
+Filtrage : Des condensateurs céramiques à faible ESR (Equivalent Series Resistance) ont été placés en entrée et en sortie pour lisser la tension et absorber l'ondulation (Ripple) 
+générée par le découpage.
+
+
+--- Interface de Puissance : Pilotage des Électrovannes ---
+
+L'ESP32 ne pouvant fournir que 3.3V et quelques milliampères, il est impossible de piloter les vannes directement. Nous avons mis en œuvre une architecture de commande utilisant deux
+étages de transistors.
+Étage 1 : Interface Logique (MOSFET Canal N )
+Ce transistor agit comme un pré-actionneur. Commandé par le signal 3.3V du GPIO de l'ESP32, il sert à tirer la grille du transistor de puissance à la masse.
+Étage 2 : Commutation de Puissance (MOSFET Canal P)
+Situé sur la ligne 12V, ce transistor agit comme un interrupteur.
+Avantage de la topologie : Cette configuration permet de couper l'alimentation en amont de la vanne. Ainsi, lorsque le système est au repos, aucune tension n'est présente dans
+les câbles des vannes.
+
+
+ --- Acquisition de Données et Capteurs ---
+
+L'interface avec les capteurs a été conçue pour maximiser la fiabilité des mesures et protéger le microcontrôleur.
+--- Pluviométrie ---
+Le capteur est relié au GPIO 34. S'agissant d'une broche "Input Only" (Entrée seule), ce choix est stratégique car il économise les broches bidirectionnelles
+pour d'autres usages.
+
+
+--- Capteur Climatique DHT22 (Single-Wire) ---
+Ce capteur numérique communique via un protocole propriétaire sur un fil unique.
+Une résistance de tirage (Pull-Up) externe de 4.7kΩ a été ajoutée sur la ligne de données pour assurer la stabilité du bus à l'état haut et permettre une communication 
+fluide sur de longues distances de câble.
+
+
+--- Horloge Temps Réel (RTC DS3231) ---
+L système intègre une horloge locale de haute précision.
+La communication se fait via le bus I2C standard. Une pile bouton de sauvegarde (CR1220) a été intégrée au schéma pour maintenir l'heure système même en cas de coupure 
+totale de l'alimentation principale.
+
+
+-------------------------     Interface Homme-Machine (IHM)          --------------------------------------
+
+L'affichage est assuré par un écran TFT LCD SPI.Afin de limiter l'empreinte sur le microcontrôleur, les lignes de communication SPI (MOSI, MISO, SCK) sont mutualisées. 
+Elles pilotent à la fois le contrôleur graphique de l'écran et le contrôleur tactile. Seules les lignes de sélection (Chip Select - CS) restent indépendantes.
+Une empreinte de connecteur standard Header 1x14 a été retenue, offrant la flexibilité de connecter l'écran via une nappe souple ou de 
+l'enficher directement.
+
+
+----------------------------    Conclusion     ----------------------------------------
+
+Le schéma électronique  est finalisé. Il intègre  la gestion de l'énergie (Booster 12V sur mesure), la protection des interfaces de puissance (Double MOSFET) et
+le conditionnement des signaux capteurs. La vérification des règles électriques doit etre etudiée et validéé et la prochaine étape est la phase de placement et de 
+routage du circuit imprimé (PCB Layout).
+
+
+
+
+
