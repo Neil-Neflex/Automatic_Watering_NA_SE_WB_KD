@@ -1,0 +1,80 @@
+
+-----------------------Introduction -----------------------
+
+Cette phase a été consacrée à la traduction du cahier des charges fonctionnel en une architecture logicielle (Firmware) viable sous l'environnement Arduino pour 
+le microcontrôleur ESP32.La conception repose sur une architecture logicielle modulaire, devant gérer la cohabitation critique entre deux tâches asynchrones :
+Le domaine de l'affichage (IHM) : Gestion du bus SPI pour l'écran TFT, décodage d'images et rafraîchissement visuel.
+Le domaine du contrôle (Logique matérielle) : Acquisition des données environnementales et pilotage sécurisé des actionneurs (électrovannes).
+L'enjeu majeur a été de garantir une interface fluide et réactive tout en assurant l'exécution fiable des routines d'arrosage, le tout contraint par les 
+limites de mémoire et de traitement (CPU) du microcontrôleur.
+
+------------ Architecture Logicielle : Approche Orientée Objet (POO) ---------------------
+
+Le système devant gérer de multiples entités indépendantes (4 vannes, 4 capteurs), le code a été structuré en Programmation Orientée Objet (C++) afin de garantir 
+la scalabilité et la maintenance du projet.
+
+--- Encapsulation et Héritage ---
+
+Au lieu d'utiliser une approche procédurale classique, nous avons développé une classe abstraite `Case` dont héritent les objets spécialisés "SensorCase" et "VanneCase".
+Chaque élément affiché à l'écran est ainsi un objet logiciel autonome possédant ses propres coordonnées physiques (x, y), sa méthode de dessin (draw()) et ses variables 
+d'état (fréquence, durée, valeur du capteur). Cette modularité permet d'ajouter ou de retirer des composants sans altérer la boucle principale.
+
+--- Optimisation du Rafraîchissement (Méthode des Flags) ---
+
+L'écriture de pixels sur un bus SPI vers un écran TFT est une opération chronophage pour le microcontrôleur. 
+Pour éviter l'effet de scintillement visuel (flickering) et libérer du temps d'horloge, une logique d'actualisation par "Flag" a été implémentée.
+Le système ne redessine pas l'écran dans son intégralité, il cible et met à jour uniquement la case dont l'état ou la valeur vient d'être modifiée.
+
+------------ Interface Homme-Machine (IHM) et Affichage ---------------------
+
+L'interface visuelle a été pensée pour offrir un tableau de bord (Dashboard) lisible instantanément sur une matrice de 320x240 pixels.
+
+--- Gestion de l'Écran et Polices (TFT_eSPI) ---
+
+L'affichage est propulsé par la bibliothèque matérielle optimisée TFT_eSPI. Afin de garantir une stabilité absolue lors de la compilation logicielle et d'économiser l'espace mémoire, 
+nous avons fait le choix stratégique d'utiliser exclusivement les polices de caractères standard intégrées au contrôleur. Cela écarte les conflits de redéfinition mémoire souvent 
+rencontrés avec des bibliothèques de polices externes.
+
+--- Traitement des Icônes et Gestion RAM (PNGdec) ---
+
+Les pictogrammes (Température, Humidité, Pluie, Sol) sont stockés directement dans la mémoire Flash de l'ESP32 sous forme de tableaux hexadécimaux (PROGMEM). La bibliothèque "PNGdec" 
+décompresse et rend ces images à la volée sur l'écran. Ce choix technique est crucial car il préserve l'intégrité de la mémoire vive (SRAM) pour l'exécution des routines d'arrosage.
+
+--- Ergonomie et Code Couleur Dynamique ---
+
+L'état du système de puissance (les vannes) est traduit par un code couleur matériellement intuitif, éliminant le besoin de lire des statuts textuels :
+Fond Vert : Vanne activée et signal d'ouverture envoyé au MOSFET (Arrosage en cours).
+Fond Blanc : Vanne activée mais logiciellement fermée (En attente de son cycle).
+Fond Rouge : Vanne désactivée (Mise en sécurité logicielle ou forçage manuel).
+
+--- Interface de Commande : Pilotage Logique des Vannes ---
+
+La couche logicielle fait le pont direct avec l'étage de puissance matériel défini dans le schéma électronique. Chaque objet "VanneCase" est instancié avec ses propres attributions de broches (GPIO) d'ouverture et de fermeture.
+
+--- Sécurisation des États ---
+
+Les méthodes logicielles OUVERTURE() et FERMETURE() garantissent la cohérence des signaux digitaux (3.3V) envoyés aux grilles des transistors N-MOS. Le code intègre une vérification stricte de l'état d'activation (enable) avant toute manipulation des broches, évitant ainsi le déclenchement accidentel d'une électrovanne lors d'une phase de maintenance ou de défaut.
+
+----------------------------    Perspectives et Prochaines Étapes    ----------------------------------------
+
+Le socle logiciel (Firmware) de l'IHM et du contrôle manuel étant finalisé, les prochaines phases de développement se concentreront sur l'autonomie, la gestion temporelle et l'efficacité énergétique du système.
+
+--- Transition vers une Gestion Temporelle Asynchrone ---
+Le remplacement systématique des temporisations bloquantes (delay()) par une approche asynchrone basée sur la fonction millis() est prévu. 
+Cela permettra au microcontrôleur d'effectuer du multitâche réel, comme surveiller l'état de l'écran ou lire un capteur pendant qu'une électrovanne est maintenue ouverte sur une longue durée.
+
+---  Planification Autonome (Horloge RTC DS3231) ---
+La logique métier des objets "VanneCase" sera interfacée avec les données de l'horloge temps réel (I2C). L'objectif est de déclencher automatiquement les cycles d'arrosage en fonction des fréquences (en jours/heures) et des durées définies, rendant le système indépendant.
+
+---  Acquisition par Interruption (Pluviomètre) ---
+Le capteur de pluie générant des impulsions asynchrones et très brèves au basculement de l'auget, une lecture par scrutation classique serait incertaine. L'implémentation d'une interruption matérielle  est prévue pour comptabiliser les précipitations en tâche de fond, garantissant une précision absolue sans surcharger le processeur.
+
+--- Stratégie d'Économie d'Énergie (Mode Deep Sleep) ---
+
+Pour viabiliser le fonctionnement autonome sur batterie, le système devra basculer en veille profonde (Deep Sleep) entre les cycles d'arrosage. Dans ce mode, l'écran et le cœur de l'ESP32 sont désactivés pour réduire la consommation à quelques microampères. La stratégie de réveil reposera sur deux vecteurs :
+Réveil Temporel : Déclenché par le Timer interne ou l'alarme du RTC pour vérifier s'il est l'heure de lancer un cycle d'arrosage.
+Réveil Événementiel : Le GPIO 34 du pluviomètre sera configuré comme source de réveil externe. S'il commence à pleuvoir pendant que le système dort, l'ESP32 se réveillera instantanément pour enregistrer l'averse, verrouiller logiciellement les électrovannes (économie d'eau), puis retourner en veille.
+
+----------------------------    Conclusion    ----------------------------------------
+
+À ce stade, l'architecture logicielle orientée objet, l'IHM TFT optimisée  et la commande sécurisée des étages de puissance sont intégralement validées et fonctionnelles. Le projet dispose désormais d'une base robuste pour intégrer les briques matérielles et logicielles d'autonomie (RTC, Capteurs physiques, Deep Sleep).
