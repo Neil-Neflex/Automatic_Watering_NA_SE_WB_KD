@@ -13,8 +13,5 @@ L'interface homme-machine est assurée localement par un écran TFT et 4 boutons
 
 ---------   La définition de l'Unité Fonctionnelle (UF) ------------
 
-En écoconception, l'unité fonctionnelle (UF) sert à quantifier le service rendu par un produit, avec une quantité, une qualité et une durée de vie.
+Quel est l'impact environnemental d'un système d'arrosage automatisé permettant d'irriger une surface de 500 m² sur une durée de 3 ans ?
 
-Unité Fonctionnelle (UF) :
-Assurer le pilotage automatisé et l'alimentation électrique de 4 zones d'arrosage distinctes, en ajustant quotidiennement l'apport hydrique selon 3 paramètres 
-environnementaux (température, humidité, précipitations), pour une durée de vie de référence (DVR) estimée à 5 ans
