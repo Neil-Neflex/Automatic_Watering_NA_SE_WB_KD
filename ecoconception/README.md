@@ -13,5 +13,4 @@ L'interface homme-machine est assurée localement par un écran TFT et 4 boutons
 
 ---------   La définition de l'Unité Fonctionnelle (UF) ------------
 
-Quel est l'impact environnemental d'un système d'arrosage automatisé permettant d'irriger une surface de 500 m² sur une durée de 3 ans ?
-
+Assurer l’arrosage automatique d’une zone de 10 m² pilotée par une vanne pendant une période de 90 jours (saison estivale), en maintenant l’humidité du sol au-dessus de 40 %, tout en optimisant la consommation d’eau grâce aux capteurs environnementaux
