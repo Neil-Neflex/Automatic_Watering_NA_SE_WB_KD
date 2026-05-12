@@ -1,0 +1,95 @@
+Lors des séances 5 et 6 du projet d’arrosage automatique, j’ai principalement avancé sur les deux tâches qui m’ont été attribuées :
+La conception du schéma algorithmique du système .
+La programmation du module horloge DS3231M.
+Pendant la séance, j’ai défini l’ensemble des états du système et leurs transitions.
+Voici le fonctionnement détaillé que j’ai construit :
+🔵 E0 – Mode Deep Sleep
+L’ESP32 reste en veille profonde pour minimiser la consommation.
+Le coprocesseur ULP continue de compter la pluie via le pluviomètre.
+Le réveil se fait par :
+interruption RTC (heure programmée),
+ou appui sur un bouton.
+🔵 E1 – Lecture des données horloge (RTC)
+À chaque réveil du système :
+lecture de la date/heure,
+vérification si un cycle d’arrosage doit démarrer,
+réinitialisation du compteur de pluie toutes les 24h.
+Transition :
+si ce n’est pas l’heure d’arroser → retour E5 (DeepSleep)
+sinon → E2
+🔵 E2 – Lecture des capteurs
+Le système lit :
+humidité du sol,
+quantité de pluie accumulée (ULP),
+température,
+humidité de l’air.
+Ces valeurs servent à autoriser ou empêcher l’arrosage selon les conditions météo.
+Transition :
+si conditions défavorables → retour E5
+sinon → E3
+🔵 E3 – Préparation de l’arrosage
+Le système :
+charge la liste des zones à arroser,
+calcule la durée totale,
+active l’écran TFT pour afficher les informations.
+C’est un état de transition avant l’activation réelle des vannes.
+🔵 E4 – Arrosage
+Automate de type Moore :
+activation des électrovannes,
+maintien du débit pendant la durée programmée,
+gestion du timer global.
+Transition :
+si durée terminée → E5
+sinon → rester en E4
+🔵 E5 – Fin & Retour Deep Sleep
+désactivation toutes les vannes,
+extinction de l’écran,
+sauvegarde éventuelle de données,
+retour en mode Deep Sleep.
+------------------------------------------------
+Après le schéma algorithmique, j’ai commencé la programmation du RTC, qui est essentiel pour :
+réveiller le système aux bonnes heures,
+gérer les cycles d’arrosage quotidiens,
+afficher la date et l’heure sur le TFT.
+---Initialisation de l’horloge
+Voici le code sur lequel j’ai travaillé :
+void setup() {
+  //---------- CLK INIT -----------------
+  Serial.begin(9600);
+
+  // Initialisation I2C
+  Wire.begin(22, 21);   // broches ESP32 SDA=22, SCL=21 
+  Serial.println("Initialisation RTC...");
+
+  while(!rtc.begin()) {
+    Serial.println("RTC non détecté !");
+  }
+
+  // Si l'RTC a perdu l'heure → on met l'heure du compilateur
+  if (rtc.lostPower()) {
+    Serial.println("RTC a perdu l'heure, initialisation...");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+}
+Ce que fait ce code :
+initialise le port série,
+configure le bus I²C sur les broches du ESP32,
+détecte la présence du module RTC,
+vérifie s’il a perdu l’heure (perte d’alimentation),
+si oui → il le réinitialise à la date/heure de compilation
+--Affichage de l’heure sur l’écran TFT
+J’ai ensuite développé une fonction permettant d’afficher l’heure en haut de l’écran TFT :
+
+void AfficherHeure(){
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_BLACK, TFT_LIGHTGREY);
+
+  DateTime now = rtc.now(); 
+  char TimeBuffer[64];
+  sprintf(TimeBuffer,"%02d/%02d/%04d %02d:%02d:%02d", 
+          now.day(), now.month(), now.year(),
+          now.hour(), now.minute(), now.second());
+
+  Serial.printf(TimeBuffer);
+  tft.drawString(TimeBuffer, 5, 10, 2);
+}

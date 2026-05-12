@@ -1,0 +1,34 @@
+Compte Rendu du Projet : Système d’Arrosage
+Automatique Géré par ESP32
+Séance 1 : Définition du cahier des charges et des contraintes
+Lors de cette première séance, nous avons commencé par définir le cahier des charges du projet
+d’arrosage automatique. Nous avons établi un sommaire regroupant les différentes parties du
+document (introduction, description générale, contraintes, spécifications matérielles, etc.), afin
+d’avoir une structure claire pour la suite du travail.
+Je me suis personnellement occupée de la partie Contraintes, où j’ai rédigé et organisé les
+exigences à respecter pour le bon fonctionnement du système :
+• Le système doit utiliser une alimentation basse tension (12 V).
+• Il doit être résistant à l’eau et adapté à une utilisation en extérieur.
+• Le projet doit respecter un coût maximal.
+• L’ensemble doit être simple à utiliser et facile à entretenir.
+• Le microcontrôleur ESP32 doit fonctionner la majorité du temps en mode basse consommation
+(deep sleep) pour optimiser l’autonomie.
+• L’interface d’affichage doit être claire, lisible et intuitive pour l’utilisateur.
+• Le nombre de voies d’arrosage doit être ajustable (jusqu’à quatre zones indépendantes).
+• Tous les composants doivent être compatibles avec l’ESP32 et facilement disponibles sur le
+marché.
+• Le système doit être autonome, sans dépendre d’un serveur distant ni d’une connexion Wi-Fi
+permanente.
+Séance 2 : Répartition des tâches et début du schéma de câblage
+Au cours de la deuxième séance, nous avons commencé par réaliser un tableau de répartition
+des tâches afin de mieux organiser le travail au sein du groupe. Chaque membre s’est vu attribuer
+des responsabilités selon l’ordre de priorité des tâches à accomplir. Ce tableau inclut des éléments
+de planification tels que la programmation des capteurs, la gestion de l’affichage, la consommation
+énergétique et les tests matériels.
+Ma première tâche a été de commencer la réalisation du schéma de câblage sur la plateforme en
+ligne Circuit-Diagram.org. J’ai débuté la mise en place des composants principaux du système : le
+microcontrôleur ESP32, le capteur DHT22, le capteur d’humidité du sol, le pluviomètre, le module
+RTC DS3231, ainsi que l’écran TFT. J’ai aussi commencé à relier les broches de l’écran TFT avec
+celles de l’ESP32 en suivant le protocole SPI.
+Cette séance a permis de concrétiser la structure matérielle du projet et de poser les bases du
+câblage global avant de passer à la partie programmation et simulation

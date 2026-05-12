@@ -1,0 +1,90 @@
+----Introduction ---
+
+Cette séance a été consacrée à la réalisation du schéma électronique (Schematic) sous le logiciel  Eagle. 
+L'objectif principal était de traduire l'architecture fonctionnelle définie précédemment en un circuit électrique viable.
+Une attention particulière a été portée à la gestion de l'énergie, notamment la cohabitation entre la logique basse tension (3.3V) de l'ESP32 
+et la puissance (12V) requise par les électrovannes. Ce rapport détaille les choix techniques et leurs justifications pour garantir la sécurité 
+et la fiabilité du système.
+
+
+--- 1. Gestion de l'Alimentation ---
+Le système est alimenté par une batterie Li-Po délivrant une tension nominale de 3.3V. 
+Or, le cahier des charges impose deux niveaux de tension distincts :
+3.3V pour le microcontrôleur ESP32, l'horloge et les capteurs et 12V pour piloter les électrovannes motorisées.
+
+Solution Retenue : Module MT3608
+Nous allons intégré un module réhausseur de tension (Step-Up) MT3608.
+Justification : La batterie ne pouvant fournir directement les 12V, ce module élève la tension de 3.3V (VBAT) vers
+un rail de puissance stable de 12V.
+
+Implémentation Eagle : Le schéma distingue clairement trois réseaux d'alimentation :
+VBAT (Source batterie).
++12V (Sortie du module, réservée exclusivement aux vannes).
++3V3 (Logique de commande).
+
+
+--- 2. Interface de Puissance : Pilotage des vannes ---
+
+L'ESP32 fonctionne en 3.3V et ne peut fournir que quelques milliampères par broche. 
+Il est impossible de le connecter directement aux électrovannes (qui nécessitent 12V et un courant élevé) sous peine de détruire le microcontrôleur.
+
+Nous avons validé une architecture utilisant deux transistors en cascade pour chaque ligne de commande (Ouvrir/Fermer).
+
+--- Étape 1 : Le Pilote (MOSFET Canal N - BSS138) ---
+Il agit comme une interface de commande.
+Lorsque l'ESP32 envoie un signal logique 3.3V (HIGH) sur la grille du BSS138, celui-ci devient passant et connecte la grille du second transistor à la masse (GND).
+
+--- Étape 2 : L'Interrupteur  (MOSFET Canal P - ZXMP6A13FTA)---
+Il délivre le courant 12V à la vanne.
+Sa source est connectée au rail +12V. Lorsque sa grille est tirée à la masse par le premier transistor, la différence de potentiel 
+active le MOSFET P, laissant passer le 12V vers la vanne.
+
+Cette configuration permet d'isoler le 12V du 3.3V tout en permettant à un signal faible puissance de contrôler une charge forte puissance. 
+
+
+
+--- 3. Intégration des Capteur ---
+
+---3.1 Pluviomètre (GPIO 34) ---
+
+
+Connexion : Le pluviomètre à auget basculant est relié à la broche IO34.
+Justification du choix de la broche : La broche 34 est une entrée seule ("Input Only") compatible avec le mode RTC. 
+Cela permettra au coprocesseur ULP de compter la pluie même lorsque l'ESP32 est en veille profonde (Deep Sleep).
+Sécurisation : Ajout d'une résistance de Pull-up de 10kΩ externe. Nécessaire car l'IO34 ne possède pas de résistance de tirage interne, 
+évitant ainsi un signal "flottant" .
+
+
+
+---3.2 Capteur Température/Humidité DHT22 (GPIO 12)---
+
+Connexion : Relié à la broche IO12.
+Sécurisation : Ajout d'une résistance de Pull-up de 4.7kΩ entre le signal DATA et le +3V3 pour assurer la stabilité du bus de 
+communication numérique "One-Wire".
+Note de conception : Un connecteur 4 broches a été utilisé sur le schéma pour correspondre à l'empreinte physique du capteur (Pin 3 NC).
+
+
+--- 3.3 Horloge RTC DS3231 (I2C) ---
+
+Connexion : Reliée aux broches IO21 (SDA) et IO22 (SCL).
+Justification : Utilisation du protocole I2C standard de l'ESP32 pour communiquer avec l'horloge et maintenir l'heure précise 
+indispensable aux cycles d'arrosage.
+
+
+--- 4. Réalisation sous Eagle ---
+
+L'élaboration du schéma a nécessité l'utilisation de méthodes pour garantir la lisibilité :
+Utilisation systématique de l'outil "Net" et "Label" pour connecter les composants virtuellement, évitant un enchevêtrement de fils.
+Renommage explicite des connecteurs (BOOSTER, BATTERIE, RTC) pour faciliter le futur routage du PCB.
+
+La prochaine étape consistera à dupliquer ce bloc de puissance pour les 4 électrovannes sur le schéma Eagle et à ajouter les 
+connecteurs pour l'ecran TFT , finalisant ainsi la conception électronique avant le routage du circuit imprimé.
+
+
+# Inventaire des composants 
+(voir inventaire.pdf)
+
+
+
+
+

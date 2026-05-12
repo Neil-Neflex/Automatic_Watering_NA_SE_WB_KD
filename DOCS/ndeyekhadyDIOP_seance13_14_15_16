@@ -1,0 +1,56 @@
+Suite à la validation de l'architecture logicielle orientée objet et de l'interface IHM, les quatre dernières séances de développement 
+ont été consacrées à la fiabilisation de l'acquisition des données environnementales, à l'optimisation énergétique du système et au passage à 
+la conception matérielle. L'objectif principal de cette phase était de rendre la station d'arrosage 100% autonome, 
+capable de fonctionner durablement sur batterie, tout en consolidant le prototype vers un produit industriel fini (PCB).
+
+
+
+--------------- 1. Fiabilisation de l'Acquisition Pluviométrique (Typage des Données) -----------------
+
+Lors de l'intégration du pluviomètre à auget basculant (0.2794 mm par impulsion), une anomalie d'affichage a été détectée : les valeurs restaient
+bloquées à 0.3 mm ou s'arrondissaient incorrectement.
+Le diagnostic a mis en évidence une erreur de typage dans la classe d'affichage SensorCase et la boucle principale, où les valeurs de pluie étaient 
+traitées comme des entiers (int). Le langage C++ tronquant systématiquement les décimales lors d'un forçage en entier, les précipitations intermédiaires
+n'étaient pas correctement comptabilisées.
+
+Correction apportée : La classe logicielle a été refactorisée pour accepter et traiter des variables à virgule flottante (float). 
+Une méthode de formatage textuel (String(value, 1)) a été ajoutée pour contraindre l'affichage à une seule décimale, garantissant ainsi une précision 
+météorologique optimale sans provoquer de débordement de texte sur l'écran TFT.
+
+
+------------ 2. Maîtrise du Coprocesseur ULP et Traitement des Signaux ----------
+
+L'enjeu énergétique majeur du projet résidait dans le comptage de la pluie pendant la veille profonde (Deep Sleep) de l'ESP32. 
+L'utilisation du coprocesseur ULP (Ultra Low Power) a été privilégiée, permettant de scruter les impulsions pour seulement ~0.01 mA. 
+Le développement du code en assembleur pour l'ULP a nécessité la résolution d'instabilités matérielles :
+Résolution de l'Effet Antenne : Lors de modifications de câblage (broches 34, 36 puis 39), le registre de l'ULP s'est mis à 
+s'incrémenter de manière erratique. Ce comportement était dû à une broche laissée flottante captant les bruits électromagnétiques ambiants.
+Adressage des Registres RTC_GPIO : L'ULP lisant les états via le registre RTC_GPIO_IN_REG, il a fallu appliquer un décalage de bits (bitmasking) précis.
+Pour lire la broche 39 (correspondant au canal RTC_GPIO_3), l'instruction assembleur a été rigoureusement reconfigurée pour cibler le bit 17.
+Déblocage Matériel : La suppression de fonctions bloquantes (comme rtc_gpio_hold_en()) a permis à l'ULP d'échantillonner correctement le capteur.
+La période de réveil de l'ULP, fixée à 10 ms, agit désormais comme un filtre anti-rebond (debounce) matériel redoutablement efficace.
+
+
+----------------- 3. Stratégie de Deep Sleep  ---------------
+Une logique de "Timeout" (Chronomètre d'inactivité) asynchrone a été implémentée :
+Maintien de l'éveil : Le système maintient l'écran TFT allumé tant qu'il détecte une activité pertinente : un changement de température/humidité, 
+une impulsion du pluviomètre lue via l'ULP, ou l'ouverture en cours d'une électrovanne.
+Mise en veille : Si 15 secondes s'écoulent sans aucune modification d'état (et si aucune vanne n'est active), 
+le firmware coupe l'alimentation de l'écran et bascule l'ESP32 en Deep Sleep.
+ En veille, le système se réveille brièvement toutes les 60 secondes via son Timer interne pour interroger la mémoire partagée de l'ULP,
+vérifier l'horloge RTC (I2C) pour la planification de l'arrosage, puis se rendort instantanément si aucune action n'est requise.
+
+
+------------ 4. Conception Matérielle : Schématique et Routage PCB ---------------------
+
+La transition vers un circuit imprimé (PCB) est l'étape finale pour stabiliser le prototype. 
+Ce travail de CAO électronique a été initié durant ces séances mais constitue un chantier complexe encore en cours.
+
+--- État d'avancement du Routage ---
+La saisie du schéma théorique et la définition des empreintes (footprints) des composants sont terminées.
+Cependant, la phase de routage des pistes (le tracé physique des connexions) est toujours en cours de réalisation.
+Cette étape est particulièrement délicate en raison de la cohabitation entre les pistes de signal (très fines) et les 
+pistes de puissance (larges) nécessaires pour alimenter les électrovannes.
+-- Conséquences sur la fabrication ---
+Comme le routage n'est pas encore achevé et validé, il est impossible de procéder à l'impression physique du circuit. 
+Cette phase demande une attention particulière pour respecter.
